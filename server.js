@@ -5,7 +5,7 @@ const GA = (process.env.GA_ID || '').trim(); // e.g. G-ABC123XYZ
 const gaTag = /^G-[A-Z0-9]+$/i.test(GA)
   ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${GA}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA}');</script>`
   : '';
-const page = Buffer.from(fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8').replace('<!--GA-->', gaTag).replace(/__SITE__/g, (process.env.SITE_URL || '').replace(/\/$/, '')));
+const page = Buffer.from(fs.readFileSync([path.join(__dirname, 'index.html'), path.join(__dirname, 'public', 'index.html')].find((p) => fs.existsSync(p)), 'utf8').replace('<!--GA-->', gaTag).replace(/__SITE__/g, (process.env.SITE_URL || '').replace(/\/$/, '')));
 
 const visitors = new Map(); // id -> last ping time
 const counts = () => {
