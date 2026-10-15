@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Random Video Calling App - Video Call Strangers Online | First Meeting</title>
+<meta name="description" content="First Meeting is a free random video calling site. Start a live video call with new people worldwide in one tap. No signup, no app download. Free video chat and calling.">
+<meta name="keywords" content="video calling, random video call, free video calling, video chat, live video call, online calling, talk to strangers, random video chat, free calling app">
+<link rel="canonical" href="__SITE__/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"First Meeting","applicationCategory":"CommunicationApplication","operatingSystem":"Any","description":"Free random video calling and video chat with new people worldwide. No signup.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<!--GA-->
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="Free Random Video Calling - First Meeting">
+<meta property="og:description" content="Free live video calling with new people worldwide. No signup.">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#2a1240;--panel:#3a1b58;--ink:#faf7ff;--mute:#b9a6d3;--accent:#ff5a4e}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,sans-serif;display:flex;flex-direction:column}
+header{position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:22px;font-weight:700}
+select{font:14px system-ui,sans-serif;background:var(--panel);color:var(--ink);border:0;border-radius:8px;padding:6px 8px}
+main{flex:1;display:flex;flex-direction:column;gap:10px;padding:0 12px 12px;min-height:0}
+.stage{position:relative;flex:1;min-height:0;background:#000;border-radius:14px;overflow:hidden}
+#remote{width:100%;height:100%;object-fit:cover}
+#local{position:absolute;right:10px;bottom:10px;width:28%;max-width:180px;border-radius:10px;border:2px solid var(--ink);background:#111;transform:scaleX(-1)}
+#status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--mute);pointer-events:none}
+.bar{display:flex;gap:8px}
+button{font:inherit;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;background:var(--panel);color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+button.go{background:var(--accent);flex:1;font-weight:700}
+button:disabled{opacity:.4;cursor:default}
+#log{height:84px;overflow:auto;background:var(--panel);border-radius:10px;padding:8px 10px;font-size:15px}
+#log p{margin:2px 0}#log .me{color:var(--mute)}
+form{display:flex;gap:8px}
+input{flex:1;font:inherit;border:0;border-radius:10px;padding:12px;background:var(--panel);color:var(--ink)}
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;z-index:5}
+#gate div{max-width:420px}
+#gate h1{margin:0 0 12px;font-size:28px}
+#gate p{color:var(--mute)}
+@media(min-width:800px){main{flex-direction:row}.side{width:340px;display:flex;flex-direction:column;gap:10px}#log{flex:1;height:auto}}
+.side{display:flex;flex-direction:column;gap:10px}
+</style>
+</head>
+<body>
+<div id="gate"><div>
+  <h1>First Meeting</h1>
+  <p data-i="gate"></p>
+  <button class="go" id="agree" data-i="agree"></button>
+</div></div>
+
+<header><span>First Meeting <small id="online" style="font-size:13px;font-weight:400;color:var(--mute)"></small></span><select id="lang" aria-label="Language"></select></header>
+<main>
+  <div class="stage">
+    <video id="remote" autoplay playsinline></video>
+    <video id="local" autoplay playsinline muted></video>
+    <div id="status"></div>
+  </div>
+  <div class="side">
+    <div class="bar">
+      <button class="go" id="start"></button>
+      <button id="stop" data-i="stop" disabled></button>
+      <button id="report" data-i="report" disabled></button>
+    </div>
+    <div id="log" aria-live="polite"></div>
+    <form id="chatForm"><input id="msg" autocomplete="off" maxlength="300" disabled><button disabled id="sendBtn" data-i="send"></button></form>
+  </div>
+</main>
+<footer style="padding:6px 16px 12px;font-size:12px;color:var(--mute);text-align:center"><h1 style="font-size:12px;font-weight:400;margin:0">Free random video calling: meet new people with a live video call, no signup. Video chat and calling online, free.</h1></footer>
+
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; // add a TURN server here for strict networks
+let ws, pc, stream, searching = false;
+const LN = {en:"English",hi:"हिन्दी",bn:"বাংলা",ta:"தமிழ்",te:"తెలుగు",mr:"मराठी",gu:"ગુજરાતી",pa:"ਪੰਜਾਬੀ",ur:"اردو",es:"Español",fr:"Français",ar:"العربية",pt:"Português",ru:"Русский",zh:"中文",ja:"日本語"};
+// To add a language: add one entry here and one in LN above.
+const T = {
+en:{gate:"Video chat with people from around the world. Never share your address, phone number or money details. You must be 18 or older. Nudity and abuse are not allowed – use Report.",agree:"I am 18 or older – continue",idle:"Press Start to find someone",find:"Looking for someone…",conn:"Connecting…",left:"Stranger left. Press Start for someone new.",cam:"Allow camera and microphone, then press Start.",start:"Start",next:"Next",stop:"Stop",report:"Report",send:"Send",ph:"Type a message",you:"You",them:"Stranger"},
+hi:{gate:"दुनिया भर के लोगों से वीडियो चैट करें। अपना पता, फ़ोन नंबर या पैसों की जानकारी कभी साझा न करें। आपकी उम्र 18 साल या उससे ज़्यादा होनी चाहिए। नग्नता और गाली-गलौज मना है – ऐसा हो तो रिपोर्ट करें।",agree:"मेरी उम्र 18+ है – आगे बढ़ें",idle:"किसी से मिलने के लिए शुरू दबाएँ",find:"किसी को ढूँढ रहे हैं…",conn:"जुड़ रहे हैं…",left:"अजनबी चला गया। नए व्यक्ति के लिए शुरू दबाएँ।",cam:"कैमरा और माइक की अनुमति दें, फिर शुरू दबाएँ।",start:"शुरू",next:"अगला",stop:"रोकें",report:"रिपोर्ट",send:"भेजें",ph:"संदेश लिखें",you:"आप",them:"अजनबी"},
+bn:{gate:"বিশ্বের মানুষের সাথে ভিডিও চ্যাট করুন। আপনার ঠিকানা, ফোন নম্বর বা টাকাপয়সার তথ্য কখনও শেয়ার করবেন না। আপনার বয়স ১৮ বা তার বেশি হতে হবে। নগ্নতা ও গালাগালি নিষিদ্ধ – এমন হলে রিপোর্ট করুন।",agree:"আমার বয়স ১৮+ – এগিয়ে যান",idle:"কাউকে খুঁজতে শুরু চাপুন",find:"কাউকে খোঁজা হচ্ছে…",conn:"সংযোগ হচ্ছে…",left:"অপরিচিত চলে গেছে। নতুন কারও জন্য শুরু চাপুন।",cam:"ক্যামেরা ও মাইক্রোফোনের অনুমতি দিন, তারপর শুরু চাপুন।",start:"শুরু",next:"পরেরটি",stop:"থামুন",report:"রিপোর্ট",send:"পাঠান",ph:"বার্তা লিখুন",you:"আপনি",them:"অপরিচিত"},
+ta:{gate:"உலகம் முழுவதும் உள்ளவர்களுடன் வீடியோ அரட்டை அடியுங்கள். உங்கள் முகவரி, தொலைபேசி எண் அல்லது பணம் தொடர்பான விவரங்களை ஒருபோதும் பகிராதீர்கள். உங்களுக்கு 18 வயது அல்லது அதற்கு மேல் இருக்க வேண்டும். நிர்வாணம், திட்டுதல் அனுமதி இல்லை – அப்படி நடந்தால் புகார் செய்யுங்கள்.",agree:"எனக்கு 18+ வயது – தொடரவும்",idle:"யாரையாவது சந்திக்க தொடங்கு அழுத்தவும்",find:"யாரையாவது தேடுகிறோம்…",conn:"இணைக்கப்படுகிறது…",left:"அந்நியர் வெளியேறினார். புதியவருக்கு தொடங்கு அழுத்தவும்.",cam:"கேமரா, மைக்ரோஃபோன் அனுமதி கொடுத்து, தொடங்கு அழுத்தவும்.",start:"தொடங்கு",next:"அடுத்து",stop:"நிறுத்து",report:"புகார்",send:"அனுப்பு",ph:"செய்தியை தட்டச்சு செய்யுங்கள்",you:"நீங்கள்",them:"அந்நியர்"},
+te:{gate:"ప్రపంచవ్యాప్తంగా ఉన్నవారితో వీడియో చాట్ చేయండి. మీ చిరునామా, ఫోన్ నంబర్ లేదా డబ్బు వివరాలను ఎప్పుడూ షేర్ చేయకండి. మీ వయసు 18 లేదా అంతకంటే ఎక్కువ ఉండాలి. నగ్నత్వం, దూషణలు నిషేధం – అలా జరిగితే రిపోర్ట్ చేయండి.",agree:"నా వయసు 18+ – కొనసాగండి",idle:"ఎవరినైనా కలవడానికి ప్రారంభించు నొక్కండి",find:"ఎవరి కోసమో వెతుకుతున్నాం…",conn:"కనెక్ట్ అవుతోంది…",left:"అపరిచితుడు వెళ్లిపోయాడు. కొత్తవారి కోసం ప్రారంభించు నొక్కండి.",cam:"కెమెరా, మైక్రోఫోన్ అనుమతి ఇచ్చి, ప్రారంభించు నొక్కండి.",start:"ప్రారంభించు",next:"తదుపరి",stop:"ఆపు",report:"రిపోర్ట్",send:"పంపు",ph:"సందేశం టైప్ చేయండి",you:"మీరు",them:"అపరిచితుడు"},
+mr:{gate:"जगभरातील लोकांशी व्हिडिओ चॅट करा. तुमचा पत्ता, फोन नंबर किंवा पैशांची माहिती कधीही शेअर करू नका. तुमचे वय १८ किंवा त्याहून जास्त असले पाहिजे. नग्नता आणि शिवीगाळ मनाई आहे – असे झाल्यास रिपोर्ट करा.",agree:"माझे वय १८+ आहे – पुढे जा",idle:"कोणाला भेटण्यासाठी सुरू करा दाबा",find:"कोणाला तरी शोधत आहे…",conn:"जोडत आहे…",left:"अनोळखी व्यक्ती निघून गेली. नवीन व्यक्तीसाठी सुरू करा दाबा.",cam:"कॅमेरा आणि मायक्रोफोनची परवानगी द्या, मग सुरू करा दाबा.",start:"सुरू करा",next:"पुढचा",stop:"थांबा",report:"रिपोर्ट",send:"पाठवा",ph:"संदेश लिहा",you:"तुम्ही",them:"अनोळखी"},
+gu:{gate:"દુનિયાભરના લોકો સાથે વિડિયો ચેટ કરો. તમારું સરનામું, ફોન નંબર કે પૈસાની માહિતી ક્યારેય શેર કરશો નહીં. તમારી ઉંમર 18 કે તેથી વધુ હોવી જોઈએ. નગ્નતા અને ગાળાગાળી પ્રતિબંધિત છે – એવું થાય તો રિપોર્ટ કરો.",agree:"મારી ઉંમર 18+ છે – આગળ વધો",idle:"કોઈને મળવા માટે શરૂ કરો દબાવો",find:"કોઈને શોધી રહ્યા છીએ…",conn:"જોડાઈ રહ્યું છે…",left:"અજાણી વ્યક્તિ જતી રહી. નવા માટે શરૂ કરો દબાવો.",cam:"કૅમેરા અને માઇકની પરવાનગી આપો, પછી શરૂ કરો દબાવો.",start:"શરૂ કરો",next:"આગળનું",stop:"બંધ કરો",report:"રિપોર્ટ",send:"મોકલો",ph:"સંદેશ લખો",you:"તમે",them:"અજાણી વ્યક્તિ"},
+pa:{gate:"ਦੁਨੀਆ ਭਰ ਦੇ ਲੋਕਾਂ ਨਾਲ ਵੀਡੀਓ ਚੈਟ ਕਰੋ। ਆਪਣਾ ਪਤਾ, ਫ਼ੋਨ ਨੰਬਰ ਜਾਂ ਪੈਸਿਆਂ ਦੀ ਜਾਣਕਾਰੀ ਕਦੇ ਸਾਂਝੀ ਨਾ ਕਰੋ। ਤੁਹਾਡੀ ਉਮਰ 18 ਸਾਲ ਜਾਂ ਵੱਧ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ। ਨੰਗਪੁਣਾ ਅਤੇ ਗਾਲ੍ਹਾਂ ਦੀ ਮਨਾਹੀ ਹੈ – ਅਜਿਹਾ ਹੋਵੇ ਤਾਂ ਰਿਪੋਰਟ ਕਰੋ।",agree:"ਮੇਰੀ ਉਮਰ 18+ ਹੈ – ਅੱਗੇ ਵਧੋ",idle:"ਕਿਸੇ ਨੂੰ ਮਿਲਣ ਲਈ ਸ਼ੁਰੂ ਕਰੋ ਦਬਾਓ",find:"ਕਿਸੇ ਨੂੰ ਲੱਭ ਰਹੇ ਹਾਂ…",conn:"ਜੁੜ ਰਿਹਾ ਹੈ…",left:"ਅਣਜਾਣ ਵਿਅਕਤੀ ਚਲਾ ਗਿਆ। ਨਵੇਂ ਲਈ ਸ਼ੁਰੂ ਕਰੋ ਦਬਾਓ।",cam:"ਕੈਮਰਾ ਅਤੇ ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ, ਫਿਰ ਸ਼ੁਰੂ ਕਰੋ ਦਬਾਓ।",start:"ਸ਼ੁਰੂ ਕਰੋ",next:"ਅਗਲਾ",stop:"ਰੋਕੋ",report:"ਰਿਪੋਰਟ",send:"ਭੇਜੋ",ph:"ਸੁਨੇਹਾ ਲਿਖੋ",you:"ਤੁਸੀਂ",them:"ਅਣਜਾਣ"},
+ur:{gate:"دنیا بھر کے لوگوں سے ویڈیو چیٹ کریں۔ اپنا پتہ، فون نمبر یا پیسوں کی معلومات کبھی شیئر نہ کریں۔ آپ کی عمر 18 سال یا اس سے زیادہ ہونی چاہیے۔ برہنگی اور گالم گلوچ ممنوع ہے – ایسا ہو تو رپورٹ کریں۔",agree:"میری عمر 18+ ہے – آگے بڑھیں",idle:"کسی سے ملنے کے لیے شروع کریں دبائیں",find:"کسی کو تلاش کیا جا رہا ہے…",conn:"جڑ رہا ہے…",left:"اجنبی چلا گیا۔ نئے شخص کے لیے شروع کریں دبائیں۔",cam:"کیمرے اور مائیک کی اجازت دیں، پھر شروع کریں دبائیں۔",start:"شروع کریں",next:"اگلا",stop:"روکیں",report:"رپورٹ",send:"بھیجیں",ph:"پیغام لکھیں",you:"آپ",them:"اجنبی"},
+es:{gate:"Chatea por video con personas de todo el mundo. Nunca compartas tu dirección, teléfono ni datos de dinero. Debes tener 18 años o más. Se prohíben la desnudez y los insultos: usa Denunciar.",agree:"Tengo 18 años o más – continuar",idle:"Pulsa Iniciar para conocer a alguien",find:"Buscando a alguien…",conn:"Conectando…",left:"El desconocido se fue. Pulsa Iniciar para otra persona.",cam:"Permite la cámara y el micrófono y pulsa Iniciar.",start:"Iniciar",next:"Siguiente",stop:"Parar",report:"Denunciar",send:"Enviar",ph:"Escribe un mensaje",you:"Tú",them:"Desconocido"},
+fr:{gate:"Discutez en vidéo avec des gens du monde entier. Ne partagez jamais votre adresse, votre numéro de téléphone ou vos données bancaires. Vous devez avoir 18 ans ou plus. La nudité et les insultes sont interdites : utilisez Signaler.",agree:"J'ai 18 ans ou plus – continuer",idle:"Appuyez sur Démarrer pour rencontrer quelqu'un",find:"Recherche en cours…",conn:"Connexion…",left:"L'inconnu est parti. Appuyez sur Démarrer pour une autre personne.",cam:"Autorisez la caméra et le micro, puis appuyez sur Démarrer.",start:"Démarrer",next:"Suivant",stop:"Arrêter",report:"Signaler",send:"Envoyer",ph:"Écrivez un message",you:"Vous",them:"Inconnu"},
+ar:{gate:"تحدّث بالفيديو مع أشخاص من حول العالم. لا تشارك عنوانك أو رقم هاتفك أو بياناتك المالية أبدًا. يجب أن يكون عمرك 18 عامًا أو أكثر. العُري والإساءة ممنوعان – استخدم زر الإبلاغ.",agree:"عمري 18 عامًا أو أكثر – متابعة",idle:"اضغط ابدأ للتعرف على شخص ما",find:"جارٍ البحث عن شخص…",conn:"جارٍ الاتصال…",left:"غادر الشخص. اضغط ابدأ لشخص جديد.",cam:"اسمح بالكاميرا والميكروفون ثم اضغط ابدأ.",start:"ابدأ",next:"التالي",stop:"إيقاف",report:"إبلاغ",send:"إرسال",ph:"اكتب رسالة",you:"أنت",them:"غريب"},
+pt:{gate:"Converse por vídeo com pessoas do mundo todo. Nunca compartilhe seu endereço, telefone ou dados financeiros. Você precisa ter 18 anos ou mais. Nudez e ofensas são proibidas: use Denunciar.",agree:"Tenho 18 anos ou mais – continuar",idle:"Toque em Iniciar para conhecer alguém",find:"Procurando alguém…",conn:"Conectando…",left:"O desconhecido saiu. Toque em Iniciar para outra pessoa.",cam:"Permita a câmera e o microfone e toque em Iniciar.",start:"Iniciar",next:"Próximo",stop:"Parar",report:"Denunciar",send:"Enviar",ph:"Digite uma mensagem",you:"Você",them:"Desconhecido"},
+ru:{gate:"Общайтесь по видео с людьми со всего мира. Никогда не сообщайте свой адрес, номер телефона или финансовые данные. Вам должно быть 18 лет или больше. Нагота и оскорбления запрещены — используйте «Пожаловаться».",agree:"Мне 18 лет или больше – продолжить",idle:"Нажмите «Старт», чтобы найти собеседника",find:"Ищем собеседника…",conn:"Соединение…",left:"Собеседник ушёл. Нажмите «Старт», чтобы найти нового.",cam:"Разрешите доступ к камере и микрофону и нажмите «Старт».",start:"Старт",next:"Далее",stop:"Стоп",report:"Пожаловаться",send:"Отправить",ph:"Напишите сообщение",you:"Вы",them:"Незнакомец"},
+zh:{gate:"与世界各地的人视频聊天。切勿透露你的住址、电话或财务信息。你必须年满18岁。禁止裸露和辱骂——请使用举报。",agree:"我已年满18岁 – 继续",idle:"点击开始，认识新朋友",find:"正在寻找对方…",conn:"正在连接…",left:"对方已离开。点击开始，认识新的人。",cam:"请允许使用摄像头和麦克风，然后点击开始。",start:"开始",next:"下一个",stop:"停止",report:"举报",send:"发送",ph:"输入消息",you:"你",them:"陌生人"},
+ja:{gate:"世界中の人とビデオチャットができます。住所、電話番号、お金に関する情報は絶対に共有しないでください。18歳以上の方のみご利用いただけます。裸の表示や暴言は禁止です。見つけたら通報してください。",agree:"18歳以上です – 続ける",idle:"「開始」を押して誰かと会いましょう",find:"相手を探しています…",conn:"接続中…",left:"相手が退出しました。「開始」で新しい相手を探しましょう。",cam:"カメラとマイクを許可して、「開始」を押してください。",start:"開始",next:"次へ",stop:"停止",report:"通報",send:"送信",ph:"メッセージを入力",you:"あなた",them:"相手"}
+};
+let L = (navigator.language || 'en').slice(0, 2);
+if (!T[L]) L = 'en';
+const t = (k) => T[L][k];
+let sk = 'idle';
+function setStatus(k) { sk = k; $('status').textContent = k ? t(k) : ''; $('status').style.display = k ? 'flex' : 'none'; }
+function applyLang() {
+  document.documentElement.lang = L;
+  document.documentElement.dir = (L === 'ar' || L === 'ur') ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i]').forEach((e) => { e.textContent = t(e.dataset.i); });
+  $('msg').placeholder = t('ph');
+  $('start').textContent = t((searching || pc) ? 'next' : 'start');
+  setStatus(sk);
+}
+
+
+$('agree').onclick = () => { $('gate').remove(); };
+
+function say(text, me) {
+  const p = document.createElement('p');
+  if (me) p.className = 'me';
+  p.textContent = t(me ? 'you' : 'them') + ': ' + text;
+  $('log').append(p); $('log').scrollTop = 1e9;
+}
+function ui(inChat) {
+  $('stop').disabled = !searching && !inChat;
+  $('report').disabled = !inChat; $('msg').disabled = !inChat; $('sendBtn').disabled = !inChat;
+  $('start').textContent = t((searching || inChat) ? 'next' : 'start');
+}
+function closePC() {
+  if (pc) { pc.onicecandidate = pc.ontrack = pc.onconnectionstatechange = null; pc.close(); pc = null; }
+  $('remote').srcObject = null;
+}
+function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+
+async function getCam() {
+  if (stream) return true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    $('local').srcObject = stream; return true;
+  } catch { setStatus('cam'); return false; }
+}
+function connectWS() {
+  return new Promise((ok) => {
+    if (ws && ws.readyState === 1) return ok();
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+    ws.onopen = ok;
+    ws.onmessage = onMsg;
+    ws.onclose = () => { searching = false; closePC(); ui(false); setStatus('idle'); };
+  });
+}
+function makePC() {
+  closePC();
+  pc = new RTCPeerConnection(ICE);
+  stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+  pc.ontrack = (e) => { $('remote').srcObject = e.streams[0]; setStatus(''); };
+  pc.onicecandidate = (e) => e.candidate && send({ t: 'ice', c: e.candidate });
+  pc.onconnectionstatechange = () => { if (pc && pc.connectionState === 'failed') { closePC(); ui(false); setStatus('idle'); } };
+}
+async function onMsg(ev) {
+  const m = JSON.parse(ev.data);
+  if (m.t === 'match') {
+    searching = false; $('log').textContent = ''; setStatus('conn'); ui(true);
+    makePC();
+    if (m.initiator) { const o = await pc.createOffer(); await pc.setLocalDescription(o); send({ t: 'offer', d: o }); }
+  } else if (m.t === 'offer' && pc) {
+    await pc.setRemoteDescription(m.d);
+    const a = await pc.createAnswer(); await pc.setLocalDescription(a); send({ t: 'answer', d: a });
+  } else if (m.t === 'answer' && pc) await pc.setRemoteDescription(m.d);
+  else if (m.t === 'ice' && pc) { try { await pc.addIceCandidate(m.c); } catch {} }
+  else if (m.t === 'chat') say(String(m.x).slice(0, 300), false);
+  else if (m.t === 'left') { closePC(); ui(false); setStatus('left'); }
+}
+
+$('start').onclick = async () => {
+  if (!(await getCam())) return;
+  await connectWS();
+  closePC(); searching = true; $('log').textContent = '';
+  setStatus('find'); ui(false);
+  send({ t: 'find' });
+};
+$('stop').onclick = () => { send({ t: 'stop' }); searching = false; closePC(); ui(false); setStatus('idle'); };
+$('report').onclick = () => { send({ t: 'report' }); closePC(); ui(false); setStatus('left'); };
+$('chatForm').onsubmit = (e) => {
+  e.preventDefault();
+  const x = $('msg').value.trim(); if (!x) return;
+  send({ t: 'chat', x }); say(x, true); $('msg').value = '';
+};
+const sel = $('lang');
+Object.keys(LN).forEach((k) => { const o = document.createElement('option'); o.value = k; o.textContent = LN[k]; sel.append(o); });
+sel.value = L;
+sel.onchange = () => { L = sel.value; applyLang(); };
+applyLang();
+</script>
+<script>
+(function(){
+  var id=Math.random().toString(36).slice(2)+Date.now().toString(36);
+  function tick(){
+    fetch('/ping?id='+id).then(function(r){return r.json()}).then(function(d){
+      document.getElementById('online').textContent='\u25CF '+d.visitors+' online';
+    }).catch(function(){});
+  }
+  tick(); setInterval(tick,15000);
+})();
+</script>
+</body>
+</html>
